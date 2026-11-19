@@ -25,6 +25,13 @@ class _SensorDemoPageState extends State<SensorDemoPage> {
   static const int _maxSamples = 60;
   static const double _motionThreshold = 0.8;
 
+  static const _ink = Color(0xFF0F172A);
+  static const _muted = Color(0xFF64748B);
+  static const _border = Color(0xFFE2E8F0);
+  static const _xColor = Color(0xFFEF4444);
+  static const _yColor = Color(0xFF10B981);
+  static const _zColor = Color(0xFF3B82F6);
+
   StreamSubscription<UserAccelerometerEvent>? _subscription;
   final ListQueue<_AccelSample> _history = ListQueue<_AccelSample>();
 
@@ -70,9 +77,7 @@ class _SensorDemoPageState extends State<SensorDemoPage> {
     );
   }
 
-  void _togglePause() {
-    setState(() => _paused = !_paused);
-  }
+  void _togglePause() => setState(() => _paused = !_paused);
 
   void _resetStats() {
     setState(() {
@@ -90,214 +95,269 @@ class _SensorDemoPageState extends State<SensorDemoPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final magnitude = _current.magnitude;
     final isMoving = _hasReading && magnitude >= _motionThreshold;
 
     final statusColor = _sensorError != null
-        ? Colors.red
+        ? const Color(0xFFDC2626)
         : isMoving
-            ? Colors.orange.shade700
-            : Colors.teal.shade700;
+            ? const Color(0xFFD97706)
+            : const Color(0xFF0F766E);
 
     final statusTitle = _sensorError != null
         ? 'Sensor Tidak Tersedia'
         : !_hasReading
-            ? 'Menunggu Data Sensor'
+            ? 'Menunggu Pembacaan'
             : isMoving
                 ? 'Perangkat Bergerak'
                 : 'Perangkat Diam';
 
     final statusSubtitle = _sensorError ??
         (!_hasReading
-            ? 'Gerakkan ponsel secara perlahan untuk memulai pembacaan.'
+            ? 'Gerakkan ponsel secara perlahan untuk mulai membaca sumbu.'
             : isMoving
-                ? 'Terdeteksi percepatan gerak di atas ${_motionThreshold.toStringAsFixed(1)} m/s².'
-                : 'Perangkat relatif stabil.');
+                ? 'Percepatan melebihi ${_motionThreshold.toStringAsFixed(1)} m/s².'
+                : 'Posisi perangkat relatif stabil.');
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Demo Accelerometer'),
+        title: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Accelerometer'),
+            Text(
+              'Monitor Sensor Gerak Real-Time',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                color: _muted,
+              ),
+            ),
+          ],
+        ),
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, thickness: 1, color: _border),
+        ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: statusColor.withValues(alpha: 0.35)),
-            ),
-            child: Column(
-              children: [
-                CircleAvatar(
-                  radius: 24,
-                  backgroundColor: statusColor.withValues(alpha: 0.16),
-                  child: Icon(
-                    _sensorError != null
-                        ? Icons.error_outline
-                        : isMoving
-                            ? Icons.vibration
-                            : Icons.stay_current_portrait,
-                    color: statusColor,
-                    size: 28,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: _border),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      _sensorError != null
+                          ? Icons.error_outline_rounded
+                          : isMoving
+                              ? Icons.vibration_rounded
+                              : Icons.stay_current_portrait_rounded,
+                      color: statusColor,
+                      size: 24,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  statusTitle,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: statusColor,
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                statusTitle,
+                                style: TextStyle(
+                                  fontSize: 15.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: statusColor,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(alpha: 0.10),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                _paused ? 'Dijeda' : 'Aktif',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: statusColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          statusSubtitle,
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            color: _muted,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  statusSubtitle,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _paused ? 'Sensor dijeda' : 'Sensor aktif',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: statusColor,
-                    fontWeight: FontWeight.w600,
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: _border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Grafik Sumbu X, Y, Z',
+                          style: TextStyle(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700,
+                            color: _ink,
+                          ),
+                        ),
+                      ),
+                      _LegendDot(color: _xColor, label: 'X'),
+                      SizedBox(width: 10),
+                      _LegendDot(color: _yColor, label: 'Y'),
+                      SizedBox(width: 10),
+                      _LegendDot(color: _zColor, label: 'Z'),
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 14),
+                  Container(
+                    height: 170,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _border),
+                    ),
+                    child: CustomPaint(
+                      painter: _AccelerometerChartPainter(
+                        samples: _history.toList(growable: false),
+                        gridColor: _border,
+                        xColor: _xColor,
+                        yColor: _yColor,
+                        zColor: _zColor,
+                      ),
+                      size: Size.infinite,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Grafik Pergerakan Real-Time (X, Y, Z)',
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            height: 180,
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: theme.colorScheme.outlineVariant),
-            ),
-            child: Column(
+            const SizedBox(height: 14),
+            Row(
               children: [
                 Expanded(
-                  child: CustomPaint(
-                    painter: _AccelerometerChartPainter(
-                      samples: _history.toList(growable: false),
-                      gridColor: theme.colorScheme.outlineVariant,
-                    ),
-                    size: Size.infinite,
+                  child: _AxisTile(
+                    label: 'Sumbu X',
+                    value: _current.x,
+                    color: _xColor,
                   ),
                 ),
-                const SizedBox(height: 8),
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _LegendItem(color: Colors.red, label: 'Sumbu X'),
-                    SizedBox(width: 16),
-                    _LegendItem(color: Colors.green, label: 'Sumbu Y'),
-                    SizedBox(width: 16),
-                    _LegendItem(color: Colors.blue, label: 'Sumbu Z'),
-                  ],
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _AxisTile(
+                    label: 'Sumbu Y',
+                    value: _current.y,
+                    color: _yColor,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _AxisTile(
+                    label: 'Sumbu Z',
+                    value: _current.z,
+                    color: _zColor,
+                  ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Pembacaan Sumbu',
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: _MetricTile(
+                    icon: Icons.speed_rounded,
+                    label: 'Total Percepatan',
+                    value: '${magnitude.toStringAsFixed(2)} m/s²',
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _MetricTile(
+                    icon: Icons.trending_up_rounded,
+                    label: 'Gerakan Puncak',
+                    value: '${_peakMagnitude.toStringAsFixed(2)} m/s²',
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _AxisCard(
-                  label: 'Sumbu X',
-                  value: _current.x,
-                  color: Colors.red,
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: _sensorError != null ? null : _togglePause,
+                    icon: Icon(
+                      _paused
+                          ? Icons.play_arrow_rounded
+                          : Icons.pause_rounded,
+                      size: 19,
+                    ),
+                    label: Text(_paused ? 'Lanjutkan Sensor' : 'Jeda Sensor'),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _AxisCard(
-                  label: 'Sumbu Y',
-                  value: _current.y,
-                  color: Colors.green,
+                const SizedBox(width: 10),
+                OutlinedButton.icon(
+                  onPressed: _resetStats,
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Reset'),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _AxisCard(
-                  label: 'Sumbu Z',
-                  value: _current.z,
-                  color: Colors.blue,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Informasi Gerakan',
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
+              ],
             ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _StatCard(
-                  icon: Icons.speed,
-                  title: 'Total Percepatan',
-                  value: '${magnitude.toStringAsFixed(2)} m/s²',
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _StatCard(
-                  icon: Icons.show_chart,
-                  title: 'Gerakan Puncak',
-                  value: '${_peakMagnitude.toStringAsFixed(2)} m/s²',
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.tonalIcon(
-                  onPressed: _sensorError != null ? null : _togglePause,
-                  icon: Icon(_paused ? Icons.play_arrow : Icons.pause),
-                  label: Text(_paused ? 'Lanjutkan Sensor' : 'Jeda Sensor'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              OutlinedButton.icon(
-                onPressed: _resetStats,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Reset'),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-class _AxisCard extends StatelessWidget {
-  const _AxisCard({
+class _AxisTile extends StatelessWidget {
+  const _AxisTile({
     required this.label,
     required this.value,
     required this.color,
@@ -308,79 +368,101 @@ class _AxisCard extends StatelessWidget {
   final Color color;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
-      ),
-      child: Column(
-        children: [
-          Text(
-            label,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value.toStringAsFixed(2),
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
+            const SizedBox(height: 6),
+            Text(
+              value.toStringAsFixed(2),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF0F172A),
+                fontFeatures: [FontFeature.tabularFigures()],
+              ),
             ),
-          ),
-          Text('m/s²', style: theme.textTheme.labelSmall),
-        ],
-      ),
-    );
-  }
+            const Text(
+              'm/s²',
+              style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+            ),
+          ],
+        ),
+      );
 }
 
-class _StatCard extends StatelessWidget {
-  const _StatCard({
+class _MetricTile extends StatelessWidget {
+  const _MetricTile({
     required this.icon,
-    required this.title,
+    required this.label,
     required this.value,
   });
 
   final IconData icon;
-  final String title;
+  final String label;
   final String value;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 20, color: theme.colorScheme.primary),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 19, color: const Color(0xFF0F766E)),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF0F172A),
+                fontFeatures: [FontFeature.tabularFigures()],
+              ),
             ),
-          ),
-          Text(title, style: theme.textTheme.bodySmall),
-        ],
-      ),
-    );
-  }
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+            ),
+          ],
+        ),
+      );
 }
 
-class _LegendItem extends StatelessWidget {
-  const _LegendItem({required this.color, required this.label});
+class _LegendDot extends StatelessWidget {
+  const _LegendDot({required this.color, required this.label});
 
   final Color color;
   final String label;
@@ -390,12 +472,19 @@ class _LegendItem extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 10,
-            height: 10,
+            width: 8,
+            height: 8,
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 4),
-          Text(label, style: Theme.of(context).textTheme.labelSmall),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF475569),
+            ),
+          ),
         ],
       );
 }
@@ -404,34 +493,42 @@ class _AccelerometerChartPainter extends CustomPainter {
   const _AccelerometerChartPainter({
     required this.samples,
     required this.gridColor,
+    required this.xColor,
+    required this.yColor,
+    required this.zColor,
   });
 
   final List<_AccelSample> samples;
   final Color gridColor;
+  final Color xColor;
+  final Color yColor;
+  final Color zColor;
 
   @override
   void paint(Canvas canvas, Size size) {
     final midY = size.height / 2;
-    final gridPaint = Paint()
-      ..color = gridColor.withValues(alpha: 0.5)
+
+    final zeroPaint = Paint()
+      ..color = gridColor
+      ..strokeWidth = 1.2;
+    final subGridPaint = Paint()
+      ..color = gridColor.withValues(alpha: 0.55)
       ..strokeWidth = 1;
 
-    // Garis tengah (0 m/s²) dan batas atas/bawah
-    canvas.drawLine(Offset(0, midY), Offset(size.width, midY), gridPaint);
+    canvas.drawLine(Offset(0, midY), Offset(size.width, midY), zeroPaint);
     canvas.drawLine(
       Offset(0, size.height * 0.2),
       Offset(size.width, size.height * 0.2),
-      gridPaint..color = gridColor.withValues(alpha: 0.25),
+      subGridPaint,
     );
     canvas.drawLine(
       Offset(0, size.height * 0.8),
       Offset(size.width, size.height * 0.8),
-      gridPaint,
+      subGridPaint,
     );
 
     if (samples.length < 2) return;
 
-    // Skala dinamis minimal ±6 m/s² agar grafik tetap mudah dibaca saat diam/bergerak
     var maxAbs = 6.0;
     for (final s in samples) {
       maxAbs = math.max(maxAbs, s.x.abs());
@@ -442,7 +539,7 @@ class _AccelerometerChartPainter extends CustomPainter {
     void drawSeries(double Function(_AccelSample) selector, Color color) {
       final paint = Paint()
         ..color = color
-        ..strokeWidth = 2
+        ..strokeWidth = 2.2
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round;
@@ -462,9 +559,9 @@ class _AccelerometerChartPainter extends CustomPainter {
       canvas.drawPath(path, paint);
     }
 
-    drawSeries((s) => s.x, Colors.red);
-    drawSeries((s) => s.y, Colors.green);
-    drawSeries((s) => s.z, Colors.blue);
+    drawSeries((s) => s.x, xColor);
+    drawSeries((s) => s.y, yColor);
+    drawSeries((s) => s.z, zColor);
   }
 
   @override

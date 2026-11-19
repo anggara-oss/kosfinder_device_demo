@@ -36,6 +36,11 @@ class _DeviceDemoPageState extends State<DeviceDemoPage> {
   LocationFailureType? _locationError;
   bool _busy = false;
 
+  static const _ink = Color(0xFF0F172A);
+  static const _muted = Color(0xFF64748B);
+  static const _border = Color(0xFFE2E8F0);
+  static const _primary = Color(0xFF0F766E);
+
   @override
   void initState() {
     super.initState();
@@ -50,9 +55,9 @@ class _DeviceDemoPageState extends State<DeviceDemoPage> {
 
   void _notice(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _restoreLocalDraft() async {
@@ -123,6 +128,7 @@ class _DeviceDemoPageState extends State<DeviceDemoPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: const Text('Hapus Foto Lokal?'),
         content: const Text(
           'Foto yang tersimpan di penyimpanan aplikasi akan dihapus secara aman '
@@ -134,6 +140,10 @@ class _DeviceDemoPageState extends State<DeviceDemoPage> {
             child: const Text('Batal'),
           ),
           FilledButton(
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(88, 40),
+              backgroundColor: const Color(0xFFDC2626),
+            ),
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Hapus'),
           ),
@@ -250,129 +260,594 @@ class _DeviceDemoPageState extends State<DeviceDemoPage> {
   Widget build(BuildContext context) {
     final photoExists =
         !kIsWeb && _photoPath != null && File(_photoPath!).existsSync();
+    final hasCoordinates = _latitude != null && _longitude != null;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('KosFinder · Device Demo'),
+        title: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('KosFinder'),
+            Text(
+              'Device Integration Demo',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                color: _muted,
+              ),
+            ),
+          ],
+        ),
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(_busy ? 3 : 1),
+          child: _busy
+              ? const LinearProgressIndicator(minHeight: 3)
+              : const Divider(height: 1, thickness: 1, color: _border),
+        ),
         actions: [
-          IconButton(
-            tooltip: 'Demo sensor',
-            icon: const Icon(Icons.sensors),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SensorDemoPage()),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: TextButton.icon(
+              style: TextButton.styleFrom(
+                foregroundColor: _primary,
+                backgroundColor: _primary.withValues(alpha: 0.08),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SensorDemoPage()),
+              ),
+              icon: const Icon(Icons.sensors_rounded, size: 18),
+              label: const Text(
+                'Sensor',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
             ),
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text(
-            CloudConfig.enabled
-                ? 'Mode: lokal + Supabase (tanpa Worksheet 9)'
-                : 'Mode: lokal/offline (Supabase belum dikonfigurasi)',
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _nameController,
-            decoration: const InputDecoration(
-              labelText: 'Nama kos (contoh: Kos Melati)',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              OutlinedButton.icon(
-                onPressed: _busy ? null : () => _choosePhoto(ImageSource.camera),
-                icon: const Icon(Icons.camera_alt),
-                label: const Text('Kamera'),
-              ),
-              OutlinedButton.icon(
-                onPressed: _busy ? null : () => _choosePhoto(ImageSource.gallery),
-                icon: const Icon(Icons.photo_library),
-                label: const Text('Galeri'),
-              ),
-              if (photoExists)
-                OutlinedButton.icon(
-                  onPressed: _busy ? null : _confirmDeletePhoto,
-                  icon: const Icon(Icons.delete_outline),
-                  label: const Text('Hapus Foto'),
-                ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          if (photoExists)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.file(File(_photoPath!), height: 200, fit: BoxFit.cover),
-            )
-          else
-            const Text('Belum ada foto. Pilih foto JPG/PNG maksimal 5 MB.'),
-          const Divider(height: 28),
-          FilledButton.tonalIcon(
-            onPressed: _busy ? null : _getLocation,
-            icon: const Icon(Icons.my_location),
-            label: const Text('Ambil Koordinat GPS'),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            _latitude == null || _longitude == null
-                ? 'Koordinat: belum diisi (opsional)'
-                : 'Lat: ${_latitude!.toStringAsFixed(6)}, '
-                    'Lng: ${_longitude!.toStringAsFixed(6)}',
-          ),
-          if (_locationError == LocationFailureType.serviceDisabled)
-            TextButton(
-              onPressed: () => Geolocator.openLocationSettings(),
-              child: const Text('Buka pengaturan layanan lokasi'),
-            ),
-          if (_locationError == LocationFailureType.deniedForever)
-            TextButton(
-              onPressed: () => Geolocator.openAppSettings(),
-              child: const Text('Buka pengaturan izin aplikasi'),
-            ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: _busy
-                ? null
-                : () async {
-                    try {
-                      await _saveDraft();
-                    } catch (error) {
-                      _notice('Gagal menyimpan draft: $error');
-                    }
-                  },
-            icon: const Icon(Icons.save),
-            label: const Text('Simpan Draft Lokal'),
-          ),
-          const SizedBox(height: 8),
-          FilledButton.icon(
-            onPressed: _busy || !CloudConfig.enabled ? null : _upload,
-            icon: const Icon(Icons.cloud_upload),
-            label: const Text('Upload Foto ke Supabase (opsional)'),
-          ),
-          if (!CloudConfig.enabled)
-            const Text('Untuk mengaktifkan upload, lihat bagian Supabase di worksheet.'),
-          if (_busy) const LinearProgressIndicator(),
-          if (_storagePath != null) ...[
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+          children: [
+            _ModeBanner(cloudEnabled: CloudConfig.enabled),
             const SizedBox(height: 14),
-            const Text('Lokasi objek Storage:'),
-            SelectableText(_storagePath!),
+            _SectionCard(
+              icon: Icons.home_work_outlined,
+              title: 'Informasi & Foto Kos',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: _nameController,
+                    textInputAction: TextInputAction.done,
+                    decoration: const InputDecoration(
+                      labelText: 'Nama kos',
+                      hintText: 'Contoh: Kos Melati',
+                      prefixIcon: Icon(Icons.badge_outlined, size: 20),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  if (photoExists)
+                    Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: Image.file(
+                            File(_photoPath!),
+                            height: 210,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        Positioned(
+                          left: 10,
+                          bottom: 10,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.62),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.check_circle_outline,
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
+                                SizedBox(width: 5),
+                                Text(
+                                  'Tersimpan lokal',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 10,
+                          right: 10,
+                          child: Material(
+                            color: Colors.black.withValues(alpha: 0.62),
+                            shape: const CircleBorder(),
+                            child: IconButton(
+                              tooltip: 'Hapus foto lokal',
+                              onPressed: _busy ? null : _confirmDeletePhoto,
+                              icon: const Icon(
+                                Icons.delete_outline_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    Container(
+                      height: 164,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: _border),
+                      ),
+                      child: const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircleAvatar(
+                            radius: 22,
+                            backgroundColor: Color(0xFFE2E8F0),
+                            child: Icon(
+                              Icons.add_a_photo_outlined,
+                              color: Color(0xFF475569),
+                              size: 22,
+                            ),
+                          ),
+                          SizedBox(height: 10),
+                          Text(
+                            'Belum ada foto kamar',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: _ink,
+                              fontSize: 14,
+                            ),
+                          ),
+                          SizedBox(height: 3),
+                          Text(
+                            'Format JPG / PNG · Maksimal 5 MB',
+                            style: TextStyle(color: _muted, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _busy
+                              ? null
+                              : () => _choosePhoto(ImageSource.camera),
+                          icon: const Icon(Icons.camera_alt_outlined, size: 18),
+                          label: const Text('Kamera'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _busy
+                              ? null
+                              : () => _choosePhoto(ImageSource.gallery),
+                          icon:
+                              const Icon(Icons.photo_library_outlined, size: 18),
+                          label: const Text('Galeri'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            _SectionCard(
+              icon: Icons.location_on_outlined,
+              title: 'Koordinat Lokasi (GPS)',
+              trailing: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Text(
+                  'Opsional',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: _muted,
+                  ),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _border),
+                    ),
+                    child: hasCoordinates
+                        ? Row(
+                            children: [
+                              Expanded(
+                                child: _CoordItem(
+                                  label: 'Latitude',
+                                  value: _latitude!.toStringAsFixed(6),
+                                ),
+                              ),
+                              Container(
+                                width: 1,
+                                height: 32,
+                                color: _border,
+                              ),
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(left: 12),
+                                  child: _CoordItem(
+                                    label: 'Longitude',
+                                    value: _longitude!.toStringAsFixed(6),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : const Row(
+                            children: [
+                              Icon(
+                                Icons.gps_not_fixed_rounded,
+                                size: 18,
+                                color: _muted,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Koordinat belum diisi',
+                                style: TextStyle(color: _muted, fontSize: 13.5),
+                              ),
+                            ],
+                          ),
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.tonalIcon(
+                    onPressed: _busy ? null : _getLocation,
+                    icon: const Icon(Icons.my_location_rounded, size: 18),
+                    label: const Text('Ambil Koordinat GPS'),
+                  ),
+                  if (_locationError == LocationFailureType.serviceDisabled) ...[
+                    const SizedBox(height: 8),
+                    _SettingsPrompt(
+                      message: 'Layanan GPS perangkat sedang nonaktif.',
+                      actionLabel: 'Buka pengaturan layanan lokasi',
+                      onPressed: () => Geolocator.openLocationSettings(),
+                    ),
+                  ],
+                  if (_locationError == LocationFailureType.deniedForever) ...[
+                    const SizedBox(height: 8),
+                    _SettingsPrompt(
+                      message: 'Izin lokasi ditolak permanen untuk aplikasi ini.',
+                      actionLabel: 'Buka pengaturan izin aplikasi',
+                      onPressed: () => Geolocator.openAppSettings(),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            _SectionCard(
+              icon: Icons.inventory_2_outlined,
+              title: 'Penyimpanan & Sinkronisasi',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  FilledButton.icon(
+                    onPressed: _busy
+                        ? null
+                        : () async {
+                            try {
+                              await _saveDraft();
+                            } catch (error) {
+                              _notice('Gagal menyimpan draft: $error');
+                            }
+                          },
+                    icon: const Icon(Icons.save_outlined, size: 19),
+                    label: const Text('Simpan Draft Lokal'),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: _busy || !CloudConfig.enabled ? null : _upload,
+                    icon: const Icon(Icons.cloud_upload_outlined, size: 19),
+                    label: const Text('Upload Foto ke Supabase (opsional)'),
+                  ),
+                  if (!CloudConfig.enabled) ...[
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Mode lokal aktif. Jalankan dengan --dart-define untuk mengaktifkan upload Supabase.',
+                      style: TextStyle(fontSize: 12, color: _muted),
+                    ),
+                  ],
+                  if (_storagePath != null || _publicUrl != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0FDFA),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _primary.withValues(alpha: 0.25),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (_storagePath != null) ...[
+                            const Text(
+                              'Lokasi objek Storage',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: _primary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            SelectableText(
+                              _storagePath!,
+                              style: const TextStyle(fontSize: 12.5, color: _ink),
+                            ),
+                          ],
+                          if (_publicUrl != null) ...[
+                            const SizedBox(height: 8),
+                            const Text(
+                              'URL foto publik',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: _primary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            SelectableText(
+                              _publicUrl!,
+                              style: const TextStyle(fontSize: 12.5, color: _ink),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline_rounded, size: 17, color: _muted),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'GPS menunjukkan posisi ponsel, bukan otomatis posisi kos. '
+                      'Jangan unggah foto orang atau informasi pribadi untuk demo.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _muted,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
-          if (_publicUrl != null) ...[
-            const SizedBox(height: 8),
-            const Text('URL foto publik:'),
-            SelectableText(_publicUrl!),
-          ],
-          const SizedBox(height: 16),
-          const Text(
-            'GPS menunjukkan posisi ponsel, bukan otomatis posisi kos. '
-            'Jangan unggah foto orang atau informasi pribadi untuk demo.',
+        ),
+      ),
+    );
+  }
+}
+
+class _ModeBanner extends StatelessWidget {
+  const _ModeBanner({required this.cloudEnabled});
+
+  final bool cloudEnabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent =
+        cloudEnabled ? const Color(0xFF0F766E) : const Color(0xFF475569);
+    final bg = cloudEnabled ? const Color(0xFFF0FDFA) : Colors.white;
+    final border = cloudEnabled
+        ? const Color(0xFF99F6E4)
+        : const Color(0xFFE2E8F0);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: cloudEnabled
+                  ? const Color(0xFF10B981)
+                  : const Color(0xFF64748B),
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              cloudEnabled
+                  ? 'Mode: lokal + Supabase (tanpa Worksheet 9)'
+                  : 'Mode: lokal/offline (Supabase belum dikonfigurasi)',
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: accent,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
+}
+
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({
+    required this.icon,
+    required this.title,
+    required this.child,
+    this.trailing,
+  });
+
+  final IconData icon;
+  final String title;
+  final Widget child;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 19, color: const Color(0xFF0F766E)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0F172A),
+                      letterSpacing: -0.1,
+                    ),
+                  ),
+                ),
+                ?trailing,
+              ],
+            ),
+            const SizedBox(height: 14),
+            child,
+          ],
+        ),
+      );
+}
+
+class _CoordItem extends StatelessWidget {
+  const _CoordItem({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF64748B),
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0F172A),
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      );
+}
+
+class _SettingsPrompt extends StatelessWidget {
+  const _SettingsPrompt({
+    required this.message,
+    required this.actionLabel,
+    required this.onPressed,
+  });
+
+  final String message;
+  final String actionLabel;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFBEB),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFFDE68A)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              message,
+              style: const TextStyle(
+                fontSize: 12.5,
+                color: Color(0xFF92400E),
+              ),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                foregroundColor: const Color(0xFFB45309),
+              ),
+              onPressed: onPressed,
+              child: Text(
+                actionLabel,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+      );
 }
