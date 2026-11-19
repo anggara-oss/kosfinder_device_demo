@@ -100,7 +100,15 @@ class _DeviceDemoPageState extends State<DeviceDemoPage> {
   }
 
   Future<void> _acceptPhoto(XFile picked) async {
+    final previousPath = _photoPath;
     final permanentPath = await _drafts.savePermanentPhoto(picked);
+    if (previousPath != null && previousPath != permanentPath) {
+      try {
+        await _drafts.deleteSafeLocalPhoto(previousPath);
+      } catch (_) {
+        // Jangan gagalkan pemilihan foto baru jika pembersihan foto lama gagal.
+      }
+    }
     if (!mounted) return;
     setState(() {
       _photoPath = permanentPath;
@@ -108,6 +116,48 @@ class _DeviceDemoPageState extends State<DeviceDemoPage> {
       _publicUrl = null;
     });
     await _saveDraft(showMessage: false);
+  }
+
+  Future<void> _confirmDeletePhoto() async {
+    if (_busy || _photoPath == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hapus Foto Lokal?'),
+        content: const Text(
+          'Foto yang tersimpan di penyimpanan aplikasi akan dihapus secara aman '
+          'dan draft lokal akan diperbarui.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _busy = true);
+    try {
+      await _drafts.deleteSafeLocalPhoto(_photoPath);
+      if (!mounted) return;
+      setState(() {
+        _photoPath = null;
+        _storagePath = null;
+        _publicUrl = null;
+      });
+      await _saveDraft(showMessage: false);
+      _notice('Foto lokal berhasil dihapus dengan aman.');
+    } catch (error) {
+      _notice('Gagal menghapus foto lokal: $error');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   Future<void> _choosePhoto(ImageSource source) async {
@@ -198,7 +248,8 @@ class _DeviceDemoPageState extends State<DeviceDemoPage> {
 
   @override
   Widget build(BuildContext context) {
-    final photoExists = _photoPath != null && File(_photoPath!).existsSync();
+    final photoExists =
+        !kIsWeb && _photoPath != null && File(_photoPath!).existsSync();
     return Scaffold(
       appBar: AppBar(
         title: const Text('KosFinder · Device Demo'),
@@ -231,6 +282,7 @@ class _DeviceDemoPageState extends State<DeviceDemoPage> {
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
+            runSpacing: 8,
             children: [
               OutlinedButton.icon(
                 onPressed: _busy ? null : () => _choosePhoto(ImageSource.camera),
@@ -242,6 +294,12 @@ class _DeviceDemoPageState extends State<DeviceDemoPage> {
                 icon: const Icon(Icons.photo_library),
                 label: const Text('Galeri'),
               ),
+              if (photoExists)
+                OutlinedButton.icon(
+                  onPressed: _busy ? null : _confirmDeletePhoto,
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Hapus Foto'),
+                ),
             ],
           ),
           const SizedBox(height: 10),

@@ -7,7 +7,8 @@ Project ini dibuat secara mandiri (*standalone*) tanpa ketergantungan pada backe
 - **Kamera & Galeri (`image_picker`)**: Mengambil foto dari kamera atau memilih dari galeri dengan validasi format (`JPG`/`JPEG`/`PNG`) serta batas ukuran maksimal 5 MB, lengkap dengan pemulihan `retrieveLostData()` pada Android.
 - **Penyimpanan Permanen & Draft Lokal (`path_provider` + `shared_preferences`)**: Foto disalin ke *Application Documents Directory* (`kosfinder_photos/`) dan metadata draft (nama kos, path foto, koordinat GPS) disimpan dalam format JSON agar tetap tersedia setelah aplikasi ditutup dan dibuka kembali.
 - **GPS & Runtime Permissions (`geolocator`)**: Mengambil koordinat lokasi secara sadar izin dengan penanganan kondisi GPS nonaktif, izin ditolak, izin ditolak permanen (*deniedForever*), dan *timeout*.
-- **Demo Sensor Accelerometer (`sensors_plus`)**: Pembacaan percepatan gerak perangkat (`x`, `y`, `z`) melalui ikon sensor pada *AppBar*.
+- **Demo Sensor Accelerometer (`sensors_plus`, Pengayaan)**: Pembacaan percepatan gerak perangkat (`x`, `y`, `z`) dilengkapi **grafik real-time X/Y/Z**, status *Perangkat Diam / Bergerak*, total percepatan, gerakan puncak, serta tombol *Jeda/Lanjutkan* dan *Reset*.
+- **Hapus Foto Lokal Aman (Pengayaan)**: Pembersihan otomatis foto lokal lama saat mengganti foto serta tombol **Hapus Foto** dengan dialog konfirmasi dan validasi path direktori (`kosfinder_photos/`) agar hanya file milik aplikasi yang dapat dihapus.
 - **Upload Supabase Storage (`supabase_flutter`, Opsional)**: Nonaktif secara default pada mode lokal; dapat diaktifkan lewat `--dart-define`.
 
 ## Struktur Folder `lib/`
